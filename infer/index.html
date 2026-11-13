@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Railway Track Crack Detection System</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-base: #0d0e10;
+            --bg-panel: #13151a;
+            --bg-card: #1a1d24;
+            --bg-card2: #1f2330;
+            --border: #2a2f3d;
+            --border-bright: #3d4560;
+            --amber: #f5a623;
+            --amber-dim: #a86e10;
+            --amber-glow: rgba(245, 166, 35, 0.15);
+            --red: #e74c3c;
+            --red-dim: #7a1a12;
+            --red-glow: rgba(231, 76, 60, 0.2);
+            --green: #27ae60;
+            --green-dim: #12542e;
+            --green-glow: rgba(39, 174, 96, 0.2);
+            --blue: #3498db;
+            --text-primary: #e8eaf0;
+            --text-secondary: #8892a4;
+            --text-muted: #4d5568;
+            --mono: 'Share Tech Mono', 'Courier New', monospace;
+            --sans: 'Rajdhani', 'Segoe UI', sans-serif;
+            --scan: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.08) 2px, rgba(0, 0, 0, 0.08) 4px);
+        }
+
+        body {
+            background: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--sans);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Top bar */
+        .topbar {
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .topbar-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .topbar-logo .icon {
+            width: 32px;
+            height: 32px;
+            background: var(--amber);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .topbar-logo .icon svg {
+            width: 18px;
+            height: 18px;
+            fill: #0d0e10;
+        }
+
+        .topbar-logo h1 {
+            font-family: var(--sans);
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-primary);
+        }
+
+        .topbar-logo span {
+            font-size: 11px;
+            color: var(--amber);
+            font-family: var(--mono);
+            letter-spacing: 1px;
+            margin-top: 2px;
+            display: block;
+        }
+
+        .topbar-meta {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .system-clock {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--amber);
+            letter-spacing: 1px;
+        }
+
+        .system-id {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text-secondary);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 4px 12px;
+        }
+
+        .status-pill .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            animation: pulse-gray 2s infinite;
+        }
+
+        .status-pill .dot.online {
+            background: var(--green);
+            animation: pulse-green 2s infinite;
+        }
+
+        .status-pill .dot.danger {
+            background: var(--red);
+            animation: pulse-red 1s infinite;
+        }
+
+        @keyframes pulse-green {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @keyframes pulse-gray {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes pulse-amber {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.4); }
+            50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(245, 166, 35, 0); }
+        }
+
+        /* Layout */
+        .main {
+            padding: 20px 24px;
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .left-col {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .right-col {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-panel);
+        }
+
+        .card-label {
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--amber);
+        }
+
+        .card-tag {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        /* Camera viewport */
+        .camera-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 0 0 8px 8px;
+            overflow: hidden;
+            min-height: 380px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #videoEl {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            filter: brightness(1.05) contrast(1.1);
+        }
+
+        #canvasEl {
+            display: none;
+        }
+
+        #overlayCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .scanlines {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--scan);
+            pointer-events: none;
+            z-index: 2;
+            opacity: 0.4;
+        }
+
+        .corner-tl, .corner-tr, .corner-bl, .corner-br {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        .corner-tl { top: 10px; left: 10px; border-top: 2px solid var(--amber); border-left: 2px solid var(--amber); }
+        .corner-tr { top: 10px; right: 10px; border-top: 2px solid var(--amber); border-right: 2px solid var(--amber); }
+        .corner-bl { bottom: 10px; left: 10px; border-bottom: 2px solid var(--amber); border-left: 2px solid var(--amber); }
+        .corner-br { bottom: 10px; right: 10px; border-bottom: 2px solid var(--amber); border-right: 2px solid var(--amber); }
+
+        .cam-overlay-idle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 5;
+        }
+
+        .cam-overlay-idle .big-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 12px;
+            border: 2px solid var(--border-bright);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.5;
+        }
+
+        .cam-overlay-idle p {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .analyze-bar {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--border);
+            z-index: 4;
+            overflow: hidden;
+        }
+
+        .analyze-bar-fill {
+            height: 100%; width: 0%;
+            background: var(--amber);
+            transition: width 0.1s linear;
+        }
+
+        .analyze-bar-fill.scanning {
+            animation: scan-sweep 2s ease-in-out infinite;
+        }
+
+        @keyframes scan-sweep {
+            0% { width: 0%; margin-left: 0; }
+            50% { width: 60%; margin-left: 20%; }
+            100% { width: 0%; margin-left: 100%; }
+        }
+
+        .scan-line-anim {
+            position: absolute;
+            left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--amber), transparent);
+            z-index: 6;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        .scan-line-anim.active {
+            animation: scan-line-move 2s linear infinite;
+            opacity: 0.7;
+        }
+
+        @keyframes scan-line-move {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        /* Status display */
+        .status-display {
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--bg-card2);
+            border: 1px solid var(--border);
+            transition: background 0.4s, border-color 0.4s;
+        }
+
+        .status-display.safe {
+            background: var(--green-glow);
+            border-color: var(--green-dim);
+        }
+
+        .status-display.danger {
+            background: var(--red-glow);
+            border-color: var(--red);
+            animation: danger-flash 0.5s ease 3;
+        }
+
+        @keyframes danger-flash {
+            0%, 100% { background: var(--red-glow); }
+            50% { background: rgba(231, 76, 60, 0.4); }
+        }
+
+        .status-icon-wrap {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 24px;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            transition: border-color 0.4s, background 0.4s;
+        }
+
+        .status-display.safe .status-icon-wrap {
+            border-color: var(--green);
+            background: var(--green-dim);
+        }
+
+        .status-display.danger .status-icon-wrap {
+            border-color: var(--red);
+            background: var(--red-dim);
+        }
+
+        .status-text-main {
+            font-family: var(--mono);
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            transition: color 0.4s;
+        }
+
+        .status-display.safe .status-text-main {
+            color: var(--green);
+        }
+
+        .status-display.danger .status-text-main {
+            color: var(--red);
+        }
+
+        .status-sub {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 3px;
+        }
+
+        /* Stats row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px 14px;
+        }
+
+        .stat-label {
+            font-family: var(--mono);
+            font-size: 9px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-family: var(--mono);
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        .stat-value.amber { color: var(--amber); }
+        .stat-value.red { color: var(--red); }
+        .stat-value.green { color: var(--green); }
+
+        .stat-unit {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-left: 3px;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            font-family: var(--sans);
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            padding: 10px 24px;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--amber);
+            color: #0d0e10;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #f7b840;
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: transparent;
+            color: var(--red);
+            border: 1px solid var(--red);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: var(--red-glow);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-ghost:hover:not(:disabled) {
+            background: var(--bg-card2);
+            border-color: var(--border-bright);
+        }
+
+        .btn-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Interval selector */
+        .interval-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .interval-wrap label {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        select.styled-select {
+            background: var(--bg-card2);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-family: var(--mono);
+            font-size: 12px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        select.styled-select:focus {
+            border-color: var(--amber);
+        }
+
+        /* Threshold slider */
+        .threshold-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .threshold-wrap label {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        input[type=range].styled-range {
+            flex: 1;
+            accent-color: var(--amber);
+        }
+
+        #thresholdVal {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--amber);
+            min-width: 36px;
+            text-align: right;
+        }
+
+        /* API Key input */
+        .api-section {
+            padding: 14px 16px;
+        }
+
+        .api-label {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .api-input-wrap {
+            display: flex;
+            gap: 8px;
+        }
+
+        input.api-input {
+            flex: 1;
+            background: var(--bg-panel);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-family: var(--mono);
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input.api-input:focus { border-color: var(--amber); }
+        input.api-input::placeholder { color: var(--text-muted); }
+
+        .api-status {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        .api-status.ok { color: var(--green); }
+        .api-status.err { color: var(--red); }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0;
+        }
+
+        /* Recent Captures */
+        .capture-gallery {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 10px 0;
+            scrollbar-width: thin;
+        }
+
+        .capture-gallery::-webkit-scrollbar { height: 4px; }
+        .capture-gallery::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .capture-item {
+            min-width: 120px;
+            max-width: 120px;
+            border: 1px solid var(--red);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            background: #000;
+        }
+
+        .capture-item img {
+            width: 100%;
+            height: 68px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .capture-meta {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(0,0,0,0.8);
+            padding: 2px 4px;
+            font-family: var(--mono);
+            font-size: 9px;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Detection log */
+        .log-wrap {
+            max-height: 220px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+
+        .log-wrap::-webkit-scrollbar { width: 4px; }
+        .log-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .log-entry {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-family: var(--mono);
+            font-size: 11px;
+        }
+
+        .log-entry:last-child { border-bottom: none; }
+
+        .log-time { color: var(--text-muted); white-space: nowrap; }
+        .log-msg { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .log-badge {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        .log-badge.safe { background: var(--green-dim); color: var(--green); }
+        .log-badge.crack { background: var(--red-dim); color: var(--red); }
+        .log-badge.info { background: var(--bg-card2); color: var(--text-muted); }
+
+        .log-empty {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 20px 0;
+            text-align: center;
+        }
+
+        /* AI Analysis panel */
+        .ai-response-wrap {
+            background: var(--bg-panel);
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            padding: 12px;
+            min-height: 80px;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            max-height: 180px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+
+        .ai-response-wrap .thinking {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--amber);
+        }
+
+        .dots span {
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--amber);
+            animation: dot-bounce 1.4s infinite ease-in-out;
+            margin-right: 3px;
+        }
+
+        .dots span:nth-child(2) { animation-delay: 0.2s; }
+        .dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes dot-bounce {
+            0%, 80%, 100% { transform: scale(0.6); }
+            40% { transform: scale(1); }
+        }
+
+        /* Confidence meter */
+        .conf-wrap { margin-top: 10px; }
+
+        .conf-label {
+            display: flex;
+            justify-content: space-between;
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .conf-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .conf-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: var(--green);
+            transition: width 0.5s ease, background 0.3s;
+        }
+
+        .conf-fill.medium { background: var(--amber); }
+        .conf-fill.high-risk { background: var(--red); }
+
+        /* Waveform / activity */
+        .waveform {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 40px;
+        }
+
+        .wave-bar {
+            flex: 1;
+            background: var(--border);
+            border-radius: 2px;
+            min-height: 4px;
+            transition: height 0.3s ease, background 0.3s;
+        }
+
+        .wave-bar.active { background: var(--amber); }
+        .wave-bar.danger { background: var(--red); }
+
+        /* Alert banner */
+        .alert-banner {
+            display: none;
+            background: var(--red-dim);
+            border: 1px solid var(--red);
+            border-radius: 6px;
+            padding: 12px 16px;
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--red);
+            letter-spacing: 1px;
+            animation: alert-pulse 1s ease infinite;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-banner.show { display: flex; }
+
+        @keyframes alert-pulse {
+            0%, 100% { border-color: var(--red); }
+            50% { border-color: rgba(231, 76, 60, 0.3); }
+        }
+
+        /* Flashing Alert */
+        .flash-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(231, 76, 60, 0.15);
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+        .flash-overlay.active { opacity: 1; }
+
+        @media (max-width: 900px) {
+            .main { grid-template-columns: 1fr; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="flash-overlay" id="flashOverlay"></div>
+
+    <!-- Top Bar -->
+    <div class="topbar">
+        <div class="topbar-logo">
+            <div class="icon">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2 17h20v2H2zm1-6h18l-1-8H4L3 11zm1.5-6.5h15l.75 5.5H3.75L4.5 4.5zM2 19h20v2H2z" />
+                </svg>
+            </div>
+            <div>
+                <h1>RailGuard AI</h1>
+                <span>CRACK DETECTION SYSTEM v2.2</span>
+            </div>
+        </div>
+        <div class="topbar-meta">
+            <div class="system-id" id="systemIdLoc">ZONE A1</div>
+            <div class="system-clock" id="clockDisplay">--:--:--</div>
+            <div class="status-pill">
+                <div class="dot" id="systemDot"></div>
+                <span id="systemStatus">OFFLINE</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="main">
+
+        <!-- LEFT COLUMN -->
+        <div class="left-col">
+
+            <!-- Alert banner -->
+            <div class="alert-banner" id="alertBanner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M1 21L12 2l11 19H1zm11-3v2h0v-2h0zm0-6v4h0v-4h0z" />
+                </svg>
+                CRITICAL: TRACK DEFECT DETECTED — IMMEDIATE INSPECTION REQUIRED
+            </div>
+
+            <!-- Camera feed -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-label">&#9679; Live Camera Feed</span>
+                    <span class="card-tag" id="frameCounter">SCAN: 0000</span>
+                </div>
+                <div class="camera-wrapper" id="cameraWrapper">
+                    <div class="cam-overlay-idle" id="cameraIdle">
+                        <div class="big-icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="#4d5568">
+                                <path
+                                    d="M12 12m-3.2 0a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" />
+                            </svg>
+                        </div>
+                        <p>Camera inactive</p>
+                        <p style="margin-top:4px; font-size:11px;">Start camera to begin inspection</p>
+                    </div>
+                    <video id="videoEl" autoplay muted playsinline style="display:none;"></video>
+                    <canvas id="canvasEl"></canvas>
+                    <canvas id="overlayCanvas" style="display:none;"></canvas>
+                    <div class="scanlines"></div>
+                    <div class="corner-tl"></div>
+                    <div class="corner-tr"></div>
+                    <div class="corner-bl"></div>
+                    <div class="corner-br"></div>
+                    <div class="scan-line-anim" id="scanLineAnim"></div>
+                    <div class="analyze-bar">
+                        <div class="analyze-bar-fill" id="analyzeBarFill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status + Stats -->
+            <div class="status-display" id="statusDisplay">
+                <div class="status-icon-wrap" id="statusIcon">
+                    <span id="statusEmoji" style="font-size:22px;">&#8212;</span>
+                </div>
+                <div>
+                    <div class="status-text-main" id="statusText">SYSTEM IDLE</div>
+                    <div class="status-sub" id="statusSub">Awaiting camera activation</div>
+                </div>
+            </div>
+
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-label">Total Scans</div>
+                    <div class="stat-value amber" id="statFrames">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">AI Processed</div>
+                    <div class="stat-value" id="statAnalyzed">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Defects Found</div>
+                    <div class="stat-value red" id="statCracks">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Safety Score</div>
+                    <div class="stat-value green" id="statSafe">—<span class="stat-unit">%</span></div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-label">System Controls</span>
+                    <div class="interval-wrap">
+                        <label>INTERVAL</label>
+                        <select class="styled-select" id="intervalSelect">
+                            <option value="3000">3s</option>
+                            <option value="5000" selected>5s</option>
+                            <option value="8000">8s</option>
+                            <option value="10000">10s</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="controls">
+                        <button class="btn btn-primary" id="startBtn" onclick="startCamera()">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8 5v14l11-7z" />
+                            </svg>
+                            Start Camera
+                        </button>
+                        <button class="btn btn-danger" id="stopBtn" onclick="stopCamera()" disabled>
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M6 6h12v12H6z" />
+                            </svg>
+                            Stop
+                        </button>
+                        <button class="btn btn-ghost" id="captureBtn" onclick="captureNow()" disabled>
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="12" r="3.2" />
+                                <path
+                                    d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" />
+                            </svg>
+                            Scan Now
+                        </button>
+                        <button class="btn btn-ghost" onclick="clearLog()">
+                            Clear
+                        </button>
+                    </div>
+
+                    <div style="margin-top:12px;">
+                        <div class="threshold-wrap">
+                            <label>CRACK SENSITIVITY</label>
+                            <input type="range" class="styled-range" min="0.05" max="0.9" step="0.05" value="0.05"
+                                id="thresholdSlider" oninput="updateThreshold(this.value)">
+                            <span id="thresholdVal">5%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auto-Captured Images Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-label">Recent Detections</span>
+                    <span class="card-tag" id="captureCount">0 CAPTURED</span>
+                </div>
+                <div class="card-body" style="padding: 10px 16px;">
+                    <div class="capture-gallery" id="captureGallery">
+                        <div style="color:var(--text-muted); font-size:11px; font-family:var(--mono); padding: 10px; width:100%;">
+                            No visual evidence captured yet. Automatically saves frames upon defect detection.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="right-col">
+
+            <!-- AI Engine Config -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-label">AI Engine Status</span>
+                    <span class="card-tag">A.I. DETECTOR</span>
+                </div>
+                <div class="card-body" style="padding:14px 16px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div class="dot" id="serverDot" style="width:8px;height:8px;background:var(--text-muted);border-radius:50%;"></div>
+                        <div class="api-status" id="apiStatus" style="margin:0;">Checking backend connection...</div>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div class="card-body" style="padding:12px 16px;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <div style="font-family:var(--mono); font-size:10px; color:var(--text-muted); background:var(--bg-panel); border:1px solid var(--border); border-radius:3px; padding:3px 8px;">
+                            HYBRID AI CLUSTER</div>
+                        <div style="font-family:var(--mono); font-size:10px; color:var(--text-muted); background:var(--bg-panel); border:1px solid var(--border); border-radius:3px; padding:3px 8px;">
+                            VISION MODE</div>
+                        <div style="font-family:var(--mono); font-size:10px; color:var(--text-muted); background:var(--bg-panel); border:1px solid var(--border); border-radius:3px; padding:3px 8px;">
+                            SECURE .ENV PROXY</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Analysis Output Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-label">AI Safety Report</span>
+                    <span class="card-tag" id="analysisTimestamp">--:--:--</span>
+                </div>
+                <div class="card-body">
+                    <div class="ai-response-wrap" id="aiResponse">
+                        <span style="color:var(--text-muted);">No analysis yet. System awaiting scans.</span>
+                    </div>
+                    <div class="conf-wrap">
+                        <div class="conf-label">
+                            <span>RISK CONFIDENCE</span>
+                            <span id="confPct">0%</span>
+                        </div>
+                        <div class="conf-bar">
+                            <div class="conf-fill" id="confFill" style="width:0%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning Graph -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-label">Detection Activity</span>
+                    <span class="card-tag">LAST 20 SCANS</span>
+                </div>
+                <div class="card-body" style="padding:14px 16px;">
+                    <div class="waveform" id="waveform">
+                        <!-- bars populated by JS -->
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-top:8px;">
+                        <div style="display:flex; align-items:center; gap:5px; font-family:var(--mono); font-size:10px; color:var(--text-muted);">
+                            <div style="width:8px;height:8px;border-radius:1px;background:var(--amber);"></div> Safe Scan
+                        </div>
+                        <div style="display:flex; align-items:center; gap:5px; font-family:var(--mono); font-size:10px; color:var(--text-muted);">
+                            <div style="width:8px;height:8px;border-radius:1px;background:var(--red);"></div> Defect Found
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Event Log -->
+            <div class="card" style="flex:1;">
+                <div class="card-header">
+                    <span class="card-label">Event Log</span>
+                    <span class="card-tag" id="logCount">0 ENTRIES</span>
+                </div>
+                <div class="card-body" style="padding:8px 16px;">
+                    <div class="log-wrap" id="logWrap">
+                        <div class="log-empty" id="logEmpty">No events recorded</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            apiKey: '',
+            serverOnline: false,
+            apiKeyConfigured: false,
+            isStreaming: false,
+            isAnalyzing: false,
+            scans: 0,
+            analyzedCount: 0,
+            crackCount: 0,
+            captures: 0,
+            threshold: 0.05,
+            scanTimer: null,
+            waveHistory: [],
+            logs: [],
+            stream: null,
+        };
+
+        const AUDIO = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playBeep() {
+            if(AUDIO.state === 'suspended') AUDIO.resume();
+            const osc = AUDIO.createOscillator();
+            const gain = AUDIO.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(800, AUDIO.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(400, AUDIO.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, AUDIO.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, AUDIO.currentTime + 0.3);
+            osc.connect(gain);
+            gain.connect(AUDIO.destination);
+            osc.start();
+            osc.stop(AUDIO.currentTime + 0.3);
+        }
+
+        // Clock & Simulated Location
+        const zones = ['Zone A1', 'Sector 4B', 'Bridge X2', 'Tunnel 7'];
+        function updateClock() {
+            const now = new Date();
+            const t = [now.getHours(), now.getMinutes(), now.getSeconds()]
+                .map(n => String(n).padStart(2, '0')).join(':');
+            document.getElementById('clockDisplay').textContent = t;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Waveform Init
+        function initWaveform() {
+            const wf = document.getElementById('waveform');
+            wf.innerHTML = '';
+            for (let i = 0; i < 20; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'wave-bar';
+                bar.style.height = '4px';
+                wf.appendChild(bar);
+            }
+        }
+        initWaveform();
+
+        function updateWaveform(isDanger) {
+            const val = isDanger ? 1 : 0;
+            state.waveHistory.push(val);
+            if (state.waveHistory.length > 20) state.waveHistory.shift();
+            const bars = document.querySelectorAll('.wave-bar');
+            state.waveHistory.forEach((v, i) => {
+                const h = v === 1 ? (24 + Math.random() * 16) : (6 + Math.random() * 10);
+                bars[i].style.height = h + 'px';
+                bars[i].className = 'wave-bar' + (v === 1 ? ' danger' : ' active');
+            });
+        }
+
+        async function checkServer() {
+            try {
+                const res = await fetch('/api/health');
+                const data = await res.json();
+                state.serverOnline = true;
+                state.apiKeyConfigured = data.apiKeyConfigured;
+                
+                const status = document.getElementById('apiStatus');
+                const dot = document.getElementById('serverDot');
+                if (data.apiKeyConfigured) {
+                    status.textContent = 'Server connected — System Online';
+                    status.className = 'api-status ok';
+                    dot.style.background = 'var(--green)';
+                } else {
+                    status.textContent = 'Server connected — API key missing in .env';
+                    status.className = 'api-status err';
+                    dot.style.background = 'var(--red)';
+                }
+            } catch (e) {
+                state.serverOnline = false;
+                const status = document.getElementById('apiStatus');
+                const dot = document.getElementById('serverDot');
+                status.textContent = 'Server offline — run: node server.js';
+                status.className = 'api-status err';
+                dot.style.background = 'var(--red)';
+            }
+        }
+        checkServer();
+        setInterval(checkServer, 10000);
+
+        function updateThreshold(val) {
+            state.threshold = parseFloat(val);
+            document.getElementById('thresholdVal').textContent = Math.round(val * 100) + '%';
+        }
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 1280, height: 720 }, audio: false });
+                state.stream = stream;
+                const video = document.getElementById('videoEl');
+                video.srcObject = stream;
+                video.style.display = 'block';
+                document.getElementById('cameraIdle').style.display = 'none';
+                document.getElementById('overlayCanvas').style.display = 'block';
+                state.isStreaming = true;
+
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('captureBtn').disabled = false;
+                document.getElementById('systemDot').className = 'dot online';
+                document.getElementById('systemStatus').textContent = 'ONLINE';
+                document.getElementById('scanLineAnim').className = 'scan-line-anim active';
+                document.getElementById('analyzeBarFill').className = 'analyze-bar-fill scanning';
+                document.getElementById('systemIdLoc').textContent = zones[Math.floor(Math.random()*zones.length)];
+
+                setStatus('idle');
+                addLog('Monitoring system activated.', 'info');
+
+                scheduleNextScan();
+            } catch (e) {
+                addLog('Camera access denied.', 'error');
+                alert('Camera access denied or unavailable.');
+            }
+        }
+
+        function stopCamera() {
+            state.isStreaming = false;
+            if (state.stream) state.stream.getTracks().forEach(t => t.stop());
+            clearTimeout(state.scanTimer);
+
+            const video = document.getElementById('videoEl');
+            video.srcObject = null;
+            video.style.display = 'none';
+            document.getElementById('cameraIdle').style.display = 'block';
+            document.getElementById('overlayCanvas').style.display = 'none';
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('captureBtn').disabled = true;
+            document.getElementById('systemDot').className = 'dot';
+            document.getElementById('systemStatus').textContent = 'OFFLINE';
+            document.getElementById('scanLineAnim').className = 'scan-line-anim';
+            document.getElementById('analyzeBarFill').className = 'analyze-bar-fill';
+            document.getElementById('alertBanner').className = 'alert-banner';
+            
+            setStatus('idle');
+            addLog('Monitoring halted.', 'info');
+        }
+
+        function scheduleNextScan() {
+            // AUTO-SCAN DISABLED
+            // The user requested Manual Mode natively to avoid rate limits permanently.
+            return;
+        }
+
+        async function captureNow() {
+            if (!state.isStreaming || state.isAnalyzing) {
+                return;
+            }
+            if (!state.serverOnline || !state.apiKeyConfigured) {
+                document.getElementById('aiResponse').innerHTML = '<span style="color:var(--red);">Backend unavailable or API key missing in .env.</span>';
+                scheduleNextScan(); return;
+            }
+
+            state.isAnalyzing = true;
+            state.scans++;
+            document.getElementById('statFrames').textContent = state.scans;
+            document.getElementById('frameCounter').textContent = 'SCAN: ' + String(state.scans).padStart(4, '0');
+
+            const video = document.getElementById('videoEl');
+            const canvas = document.getElementById('canvasEl');
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 360;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+            const fullImageUri = canvas.toDataURL('image/jpeg', 0.8);
+
+            document.getElementById('aiResponse').innerHTML = '<div class="thinking">AI Model processing frame<div class="dots"><span></span><span></span><span></span></div></div>';
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ base64Image: imageData })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error?.message || 'Server analysis failed');
+                }
+
+                const result = await response.json();
+                processResult(result, fullImageUri);
+            } catch (e) {
+                document.getElementById('aiResponse').innerHTML = '<span style="color:var(--red);">Analysis Exception: ' + e.message + '</span>';
+            }
+
+            state.isAnalyzing = false;
+            scheduleNextScan();
+        }
+
+        function processResult(result, imageUri) {
+            state.analyzedCount++;
+            document.getElementById('statAnalyzed').textContent = state.analyzedCount;
+
+            const isCrack = result.crackDetected && result.confidence >= state.threshold;
+            const confidence = Math.round((result.confidence || 0) * 100);
+
+            // Use severity from server (YOLO-computed)
+            const sev = result.severity || 'none';
+            const severity = sev === 'severe' ? 'HIGH' : sev === 'moderate' ? 'MEDIUM' : sev === 'minor' ? 'LOW' : 'NONE';
+            const sevColor = severity === 'HIGH' ? 'var(--red)' : severity === 'MEDIUM' ? 'var(--amber)' : 'var(--green)';
+
+            const now = new Date();
+            const ts = [now.getHours(), now.getMinutes(), now.getSeconds()].map(n => String(n).padStart(2, '0')).join(':');
+
+            // Use YOLO-reported location (from server)
+            const location = result.location || document.getElementById('systemIdLoc').textContent;
+            // Use YOLO bounding box count as crack count
+            const numCracks = result.numCracks !== undefined ? result.numCracks
+                            : (result.predictions ? result.predictions.length : (isCrack ? 1 : 0));
+
+            document.getElementById('analysisTimestamp').textContent = ts;
+
+            const statusLabel = isCrack ? 'CRACK DETECTED' : 'NO CRACKS';
+            const statusColor = isCrack ? 'var(--red)' : 'var(--green)';
+
+            document.getElementById('aiResponse').innerHTML =
+                `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">` +
+                    `<span style="background:${isCrack ? 'var(--red-dim)' : 'var(--green-dim)'};color:${statusColor};font-size:11px;font-weight:bold;letter-spacing:1px;padding:3px 10px;border-radius:3px;border:1px solid ${statusColor};">${statusLabel}</span>` +
+                    `<span style="color:var(--text-muted);font-size:10px;">${confidence}% confidence</span>` +
+                `</div>` +
+                `<div style="display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:11px;margin-bottom:10px;padding:10px;background:var(--bg-panel);border-radius:4px;border:1px solid var(--border);">` +
+                    `<span style="color:var(--text-muted);">TIME</span><span style="color:var(--amber);">${ts}</span>` +
+                    `<span style="color:var(--text-muted);">LOCATION</span><span style="color:var(--text-primary);">${location}</span>` +
+                    `<span style="color:var(--text-muted);">CRACKS FOUND</span><span style="color:${isCrack ? 'var(--red)' : 'var(--green)'}; font-weight:bold; font-size:14px;">${numCracks}</span>` +
+                    `<span style="color:var(--text-muted);">SEVERITY</span><span style="color:${sevColor};font-weight:bold;">${severity}</span>` +
+                `</div>` +
+                `<div style="font-size:12px;color:var(--text-primary);margin-bottom:6px;">${result.summary || (isCrack ? 'Structural anomaly detected.' : 'No visible defects.')}</div>` +
+                `<div style="margin-top:8px;color:var(--amber);font-size:11px;border-top:1px solid var(--border);padding-top:6px;">${result.recommendation || ''}</div>`;
+
+            // Confidence bar
+            const fill = document.getElementById('confFill');
+            document.getElementById('confPct').textContent = confidence + '%';
+            fill.style.width = confidence + '%';
+            fill.className = 'conf-fill' + (confidence >= 70 ? ' high-risk' : confidence >= 45 ? ' medium' : '');
+
+            if (isCrack) {
+                state.crackCount++;
+                document.getElementById('statCracks').textContent = state.crackCount;
+                setStatus('danger');
+                document.getElementById('alertBanner').className = 'alert-banner show';
+                updateWaveform(true);
+                playBeep();
+                triggerFlash();
+                addLog(`⚠️ ${numCracks} crack(s) — ${severity} (${confidence}%) @ ${location}`, 'crack');
+                drawOverlay(Boolean(result.predictions?.length), result);
+                saveCapture(imageUri, severity, ts);
+            } else {
+                setStatus('safe');
+                document.getElementById('alertBanner').className = 'alert-banner';
+                updateWaveform(false);
+                addLog('✔️ Scan clear — Track conditions nominal.', 'safe');
+                drawOverlay(Boolean(result.predictions?.length), result);
+            }
+
+            const safe = state.analyzedCount - state.crackCount;
+            const safeRate = Math.round((safe / state.analyzedCount) * 100) || 100;
+            document.getElementById('statSafe').innerHTML = safeRate + '<span class="stat-unit">%</span>';
+            if(safeRate < 80) document.getElementById('statSafe').className = 'stat-value red';
+            else document.getElementById('statSafe').className = 'stat-value green';
+        }
+
+        function setStatus(type) {
+            const display = document.getElementById('statusDisplay');
+            const icon = document.getElementById('statusEmoji');
+            const text = document.getElementById('statusText');
+            const sub = document.getElementById('statusSub');
+            display.className = 'status-display';
+
+            if (type === 'safe') {
+                display.classList.add('safe');
+                icon.textContent = '✓';
+                text.textContent = 'TRACK SAFE';
+                sub.textContent = 'No defects detected — line clear';
+            } else if (type === 'danger') {
+                display.classList.add('danger');
+                icon.textContent = '!';
+                text.textContent = 'DEFECT DETECTED';
+                sub.textContent = 'Anomaly identified — halt required';
+            } else {
+                icon.textContent = '—';
+                text.textContent = 'SYSTEM IDLE';
+                sub.textContent = 'Awaiting camera activation';
+            }
+        }
+
+        function triggerFlash() {
+            const flash = document.getElementById('flashOverlay');
+            flash.classList.add('active');
+            setTimeout(() => flash.classList.remove('active'), 150);
+        }
+
+        function drawOverlay(isDanger, result) {
+            const overlay = document.getElementById('overlayCanvas');
+            const video = document.getElementById('videoEl');
+            overlay.width = video.offsetWidth;
+            overlay.height = video.offsetHeight;
+            const ctx = overlay.getContext('2d');
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+            if (!isDanger || !result.predictions || result.predictions.length === 0) return;
+
+            // Scale factors: map from model image coordinates → canvas display coordinates
+            const modelW = result.imageSize?.width  || 640;
+            const modelH = result.imageSize?.height || 640;
+            const scaleX = overlay.width  / modelW;
+            const scaleY = overlay.height / modelH;
+
+            result.predictions.forEach((pred, idx) => {
+                const conf = Math.round(pred.confidence * 100);
+
+                // Color by confidence: high=red, medium=amber, low=yellow
+                const color = conf >= 75 ? '#e74c3c' : conf >= 50 ? '#f5a623' : '#f1c40f';
+
+                // Local YOLO returns model-pixel coordinates; Groq returns normalized
+                // coordinates (0..1). Convert both formats to the overlay dimensions.
+                // Keep the visual marker square while preserving the detection center.
+                const isNormalized = Boolean(pred.normalized);
+                const centerX = isNormalized ? pred.x * overlay.width : pred.x * scaleX;
+                const centerY = isNormalized ? pred.y * overlay.height : pred.y * scaleY;
+                const rawWidth = isNormalized ? pred.width * overlay.width : pred.width * scaleX;
+                const rawHeight = isNormalized ? pred.height * overlay.height : pred.height * scaleY;
+                const side = Math.max(rawWidth, rawHeight);
+                const bx = Math.max(0, Math.min(overlay.width - side, centerX - side / 2));
+                const by = Math.max(0, Math.min(overlay.height - side, centerY - side / 2));
+                const bw = side;
+                const bh = side;
+
+                // Box fill
+                ctx.fillStyle = conf >= 75 ? 'rgba(231,76,60,0.15)' : 'rgba(245,166,35,0.15)';
+                ctx.fillRect(bx, by, bw, bh);
+
+                // Box border
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([]);
+                ctx.strokeRect(bx, by, bw, bh);
+
+                // Corner ticks for that YOLO look
+                const tick = 10;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                // Top-left
+                ctx.moveTo(bx, by + tick); ctx.lineTo(bx, by); ctx.lineTo(bx + tick, by);
+                // Top-right
+                ctx.moveTo(bx + bw - tick, by); ctx.lineTo(bx + bw, by); ctx.lineTo(bx + bw, by + tick);
+                // Bottom-left
+                ctx.moveTo(bx, by + bh - tick); ctx.lineTo(bx, by + bh); ctx.lineTo(bx + tick, by + bh);
+                // Bottom-right
+                ctx.moveTo(bx + bw - tick, by + bh); ctx.lineTo(bx + bw, by + bh); ctx.lineTo(bx + bw, by + bh - tick);
+                ctx.stroke();
+
+                // Label background
+                const label = `${(pred.label || 'CRACK').toUpperCase()} ${conf}%`;
+                ctx.font = 'bold 12px "Courier New", monospace';
+                const tw = ctx.measureText(label).width;
+                ctx.fillStyle = color;
+                ctx.fillRect(bx - 1, by - 22, tw + 12, 20);
+
+                // Label text
+                ctx.fillStyle = '#000';
+                ctx.fillText(label, bx + 5, by - 7);
+            });
+        }
+
+        function saveCapture(imageUri, severity, time) {
+            state.captures++;
+            document.getElementById('captureCount').textContent = state.captures + ' CAPTURED';
+            
+            const gallery = document.getElementById('captureGallery');
+            if(state.captures === 1) gallery.innerHTML = ''; // clear placeholder msg
+
+            const item = document.createElement('div');
+            item.className = 'capture-item';
+            item.innerHTML = `<img src="${imageUri}"><div class="capture-meta"><span>${time}</span><span style="color:var(--amber);">${severity}</span></div>`;
+            gallery.prepend(item);
+        }
+
+        function addLog(msg, type) {
+            const wrap = document.getElementById('logWrap');
+            const empty = document.getElementById('logEmpty');
+            if (empty) empty.remove();
+
+            const now = new Date();
+            const ts = [now.getHours(), now.getMinutes(), now.getSeconds()].map(n => String(n).padStart(2, '0')).join(':');
+
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+
+            const badge = type === 'safe' ? '<span class="log-badge safe">SAFE</span>' :
+                type === 'crack' ? '<span class="log-badge crack">ALERT</span>' :
+                    '<span class="log-badge info">INFO</span>';
+
+            entry.innerHTML = `<span class="log-badge" style="background:transparent;padding:0;">${type === 'safe' ? '✔️' : type === 'crack' ? '⚠️' : 'ℹ️'}</span><span class="log-msg">${msg}</span><span class="log-time">${ts}</span>`;
+            wrap.insertBefore(entry, wrap.firstChild);
+
+            state.logs.unshift({ ts, msg, type });
+            if(state.logs.length > 50) {
+                state.logs.pop();
+                const last = wrap.lastChild;
+                if(last) last.remove();
+            }
+            document.getElementById('logCount').textContent = state.logs.length + ' ENTRIES';
+        }
+
+        function clearLog() {
+            document.getElementById('logWrap').innerHTML = '<div class="log-empty" id="logEmpty">No events recorded</div>';
+            state.logs = [];
+            document.getElementById('logCount').textContent = '0 ENTRIES';
+        }
+    </script>
+</body>
+
+</html>

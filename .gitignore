@@ -1,0 +1,22 @@
+# Secrets and local configuration
+.env
+infer/.env
+
+# Local environments and dependencies
+.venv/
+infer/.venv/
+node_modules/
+infer/node_modules/
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Legacy nested source tree; only the selected crack model is published.
+infer/Railway-Crack-Detection-System/*
+!infer/Railway-Crack-Detection-System/
+!infer/Railway-Crack-Detection-System/best.railway-crack.pt
+
+# Runtime artifacts
+infer/temp_*.jpg
+infer/runtime-validation-report.md
